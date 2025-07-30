@@ -1,25 +1,35 @@
-import logo from './logo.svg';
-import './App.css';
+import { ThemeProvider } from '@mui/material/styles';
+import { CssBaseline, StyledEngineProvider } from '@mui/material';
 
-function App() {
+// routing
+import Routes from 'routes';
+
+// defaultTheme
+import theme from 'theme';
+
+// import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+
+import { ConfirmProvider } from 'hooks/Confirm ';
+import { AlertProvider } from 'hooks/Alart';
+import { AuthProvider } from 'hooks/AuthProvider';
+
+// ==============================|| APP ||============================== //
+
+const App = () => {
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
+    <StyledEngineProvider injectFirst>
+      <ThemeProvider theme={theme}>
+        <CssBaseline />
+        <AlertProvider>
+          <ConfirmProvider>
+            <AuthProvider>
+              <Routes />
+            </AuthProvider>
+          </ConfirmProvider>
+        </AlertProvider>
+      </ThemeProvider>
+    </StyledEngineProvider>
   );
-}
+};
 
 export default App;
