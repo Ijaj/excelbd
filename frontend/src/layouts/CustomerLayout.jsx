@@ -1,22 +1,7 @@
-import React, { useCallback, useMemo, useState } from 'react';
-import {
-  AppBar,
-  Toolbar,
-  Typography,
-  Button,
-  Box,
-  Container,
-  IconButton,
-  useTheme,
-  useMediaQuery,
-  Drawer,
-  List,
-  ListItem,
-  ListItemButton,
-  ListItemText,
-  Divider,
-  Stack
-} from '@mui/material';
+import { useState } from 'react';
+import { AppBar, Toolbar, Typography, Button, Box, IconButton, useTheme, useMediaQuery, Drawer, Divider, Stack, Link } from '@mui/material';
+import { useNavigate } from 'react-router-dom';
+
 import { LocalShipping, Menu as MenuIcon, Login, PersonAdd, Close } from '@mui/icons-material';
 import { Outlet } from 'react-router-dom';
 
@@ -25,7 +10,9 @@ import AccountMenu from 'components/profile';
 
 const Layout = () => {
   const theme = useTheme();
-  const { user, isLoggedIn } = useAuth();
+  const { isLoggedIn, user, logout } = useAuth();
+  const navigate = useNavigate();
+
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -54,13 +41,22 @@ const Layout = () => {
     setMobileMenuOpen(false);
   };
 
-  // const handleNavigation = (href) => {
-  //   const element = document.querySelector(href);
-  //   if (element) {
-  //     element.scrollIntoView({ behavior: 'smooth' });
-  //   }
-  //   handleMobileMenuClose();
-  // };
+  function navigateToLogin() {
+    navigate('/auth/login', { replace: true });
+  }
+
+  function navigateToSignup() {
+    navigate('/auth/signup', { replace: true });
+  }
+
+  function handleNavigation(route = '/') {
+    navigate(route, { replace: true });
+  }
+
+  function handleLogout() {
+    logout();
+    navigate('/', { replace: true });
+  }
 
   return (
     <>
@@ -68,70 +64,58 @@ const Layout = () => {
         position="fixed"
         elevation={0}
         sx={{
-          // backgroundColor: 'rgba(255, 255, 255, 0.95)',
           backdropFilter: 'blur(10px)',
+          zIndex: (theme) => theme.zIndex.drawer + 1,
           borderBottom: '1px solid rgba(0, 0, 0, 0.08)',
           transition: 'all 0.3s ease'
         }}
       >
-        <Container maxWidth="xl">
+        <Box px={1}>
           <Toolbar sx={{ justifyContent: 'space-between', py: 1 }}>
             {/* Logo */}
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <LocalShipping
+            <Link href={'/'} underline="none">
+              <Box
                 sx={{
-                  fontSize: 32,
-                  color: '#f5f5f5',
-                  transform: 'rotate(-10deg)'
-                }}
-              />
-              <Typography
-                variant="h5"
-                component="div"
-                sx={{
-                  fontWeight: 800,
-                  backgroundClip: 'text',
-                  WebkitBackgroundClip: 'text',
-                  color: '#f5f5f5',
-                  letterSpacing: '-0.5px'
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 1,
+                  cursor: 'pointer'
                 }}
               >
-                CourierPro
-              </Typography>
-            </Box>
+                <LocalShipping
+                  sx={{
+                    fontSize: 32,
+                    color: '#f5f5f5',
+                    transform: 'rotate(-10deg)'
+                  }}
+                />
+
+                <Typography
+                  variant="h5"
+                  component="div"
+                  sx={{
+                    fontWeight: 800,
+                    backgroundClip: 'text',
+                    WebkitBackgroundClip: 'text',
+                    color: '#f5f5f5',
+                    letterSpacing: '-0.5px'
+                  }}
+                >
+                  CourierPro
+                </Typography>
+              </Box>
+            </Link>
 
             {/* Desktop Navigation */}
             {!isMobile && (
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                {/* <Box sx={{ display: 'flex', gap: 3 }}>
-                  {navigationItems.map((item) => (
-                    <Button
-                      key={item.label}
-                      variant="text"
-                      onClick={() => handleNavigation(item.href)}
-                      sx={{
-                        color: '#f5f5f5',
-                        fontWeight: 700,
-                        textTransform: 'none',
-                        fontSize: '0.95rem',
-                        '&:hover': {
-                          backgroundColor: theme.palette.primary.dark,
-                          transform: 'translateY(-1px)'
-                        },
-                        transition: 'all 0.2s ease-in-out'
-                      }}
-                    >
-                      {item.label}
-                    </Button>
-                  ))}
-                </Box> */}
-
                 <Box sx={{ display: 'flex', gap: 1, ml: 2 }}>
                   {!isLoggedIn ? (
                     <Button
                       variant="contained"
                       startIcon={<Login />}
                       color="inherit"
+                      onClick={navigateToLogin}
                       sx={{
                         color: theme.palette.text.primary,
                         textTransform: 'none',
@@ -144,11 +128,18 @@ const Layout = () => {
                     ''
                   )}
                   {isLoggedIn ? (
-                    <AccountMenu />
+                    <AccountMenu
+                      onNagivate={handleNavigation}
+                      onLogout={handleLogout}
+                      key={'sdfsdfsdfs'}
+                      name={user?.name}
+                      role={user?.role}
+                    />
                   ) : (
                     <Button
                       variant="contained"
                       startIcon={<PersonAdd />}
+                      onClick={navigateToSignup}
                       sx={{
                         textTransform: 'none',
                         fontWeight: 600,
@@ -185,7 +176,7 @@ const Layout = () => {
               </IconButton>
             )}
           </Toolbar>
-        </Container>
+        </Box>
       </AppBar>
 
       {/* Mobile Drawer Menu */}
@@ -273,6 +264,7 @@ const Layout = () => {
                 fullWidth
                 variant="outlined"
                 startIcon={<Login />}
+                onClick={navigateToLogin}
                 sx={{
                   py: 1.5,
                   textTransform: 'none',
@@ -286,6 +278,7 @@ const Layout = () => {
                 fullWidth
                 variant="contained"
                 startIcon={<PersonAdd />}
+                onClick={navigateToSignup}
                 sx={{
                   py: 1.5,
                   textTransform: 'none',

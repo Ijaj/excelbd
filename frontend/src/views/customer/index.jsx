@@ -1,4 +1,3 @@
-import React from 'react';
 import {
   Box,
   Container,
@@ -13,7 +12,8 @@ import {
   Paper,
   Avatar,
   Stack,
-  Divider
+  Divider,
+  TextField
 } from '@mui/material';
 import {
   LocalShipping,
@@ -23,7 +23,7 @@ import {
   NotificationsActive,
   PhoneAndroid,
   Security,
-  PlayArrow,
+  Search,
   TrendingUp,
   SupportAgent
 } from '@mui/icons-material';
@@ -78,7 +78,11 @@ const CustomerLandingPage = () => {
   ];
 
   return (
-    <Box>
+    <Box
+      sx={{
+        backgroundColor: theme.palette.background.default
+      }}
+    >
       {/* Hero Section */}
       <Box
         sx={{
@@ -149,9 +153,27 @@ const CustomerLandingPage = () => {
                 </Typography>
 
                 <Stack direction={isMobile ? 'column' : 'row'} spacing={2} sx={{ mb: 6 }}>
+                  <TextField
+                    placeholder="Enter You Tracking ID"
+                    sx={{
+                      py: 0,
+                      px: 0,
+                      fontSize: '1.1rem',
+                      fontWeight: 600,
+                      borderRadius: 2,
+                      background: `linear-gradient(135deg, ${theme.palette.primary.main}, ${theme.palette.primary.dark})`,
+                      boxShadow: `0 8px 24px ${theme.palette.primary.main}40`,
+                      '&:hover': {
+                        transform: 'translateY(-2px)',
+                        boxShadow: `0 12px 32px ${theme.palette.primary.main}50`
+                      },
+                      transition: 'all 0.3s ease-in-out'
+                    }}
+                  />
                   <Button
                     variant="contained"
                     size="large"
+                    startIcon={<Search />}
                     sx={{
                       py: 1.5,
                       px: 4,
@@ -167,27 +189,7 @@ const CustomerLandingPage = () => {
                       transition: 'all 0.3s ease-in-out'
                     }}
                   >
-                    Start Free Trial
-                  </Button>
-                  <Button
-                    variant="outlined"
-                    size="large"
-                    startIcon={<PlayArrow />}
-                    sx={{
-                      py: 1.5,
-                      px: 4,
-                      fontSize: '1.1rem',
-                      fontWeight: 600,
-                      borderRadius: 2,
-                      borderWidth: 2,
-                      '&:hover': {
-                        borderWidth: 2,
-                        transform: 'translateY(-1px)'
-                      },
-                      transition: 'all 0.3s ease-in-out'
-                    }}
-                  >
-                    Watch Demo
+                    Track Your Parcel
                   </Button>
                 </Stack>
 

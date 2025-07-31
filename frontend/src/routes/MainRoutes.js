@@ -1,78 +1,98 @@
-import { lazy, useEffect, useRef } from 'react';
+import { lazy } from 'react';
 
 // project imports
 import Loadable from 'ui/loadable';
 
 // layout imports
-const AdminLayout = Loadable(lazy(() => import('layouts/AdminLayout')));
-const AgentLayout = Loadable(lazy(() => import('layouts/AgentLayout')));
-const CustomerLayout = Loadable(lazy(() => import('layouts/CustomerLayout')));
+const Layout = Loadable(lazy(() => import('layouts/CustomerLayout')));
 
 // page imports
+const LandingPage = Loadable(lazy(() => import('views/customer/')));
 const AdminDashboard = Loadable(lazy(() => import('views/admin/')));
+const AllAgents = Loadable(lazy(() => import('views/admin/agents')));
 const AgentDashboard = Loadable(lazy(() => import('views/agent/')));
-const CustomerDashboard = Loadable(lazy(() => import('views/customer/')));
+const CustomerBookings = Loadable(lazy(() => import('views/customer/bookings')));
 
 import { ProtectedRoute } from './ProtectedRoutes';
+import { Navigate } from 'react-router-dom';
 
 export default function RoleBasedRoutes(role) {
-  console.log('role: ', role);
   const AdminRoutes = {
     path: '/dashboard',
     element: (
       <ProtectedRoute>
-        <AdminLayout />
+        <Layout />
       </ProtectedRoute>
     ),
     children: [
       {
         index: true,
         element: <AdminDashboard />
+      },
+      {
+        path: 'agents',
+        element: <AllAgents />
+      },
+      {
+        path: '*',
+        element: <Navigate to={'/404'} replace />
       }
     ]
   };
 
   const AgentRoutes = {
-    path: '/dashboard',
+    path: 'dashboard',
     element: (
       <ProtectedRoute>
-        <AgentLayout />
+        <Layout />
       </ProtectedRoute>
     ),
     children: [
       {
         index: true,
         element: <AgentDashboard />
+      },
+      {
+        path: '*',
+        element: <Navigate to={'/404'} replace />
       }
     ]
   };
 
   const CustomerRoutes = {
-    path: '/dashboard',
-    element: (
-      <ProtectedRoute>
-        <CustomerLayout />
-      </ProtectedRoute>
-    ),
+    path: '/',
+    element: <Layout />,
     children: [
       {
         index: true,
-        element: <CustomerDashboard />
+        element: <LandingPage />
+      },
+      {
+        path: '/bookings',
+        element: (
+          <ProtectedRoute>
+            <CustomerBookings />
+          </ProtectedRoute>
+        )
+      },
+      {
+        path: '*',
+        element: <Navigate to={'/404'} replace />
       }
     ]
   };
 
   const GuestRoutes = {
     path: '/',
-    element: (
-      <ProtectedRoute>
-        <CustomerLayout />
-      </ProtectedRoute>
-    ),
+    element: <Layout />,
     children: [
       {
         index: true,
-        element: <CustomerDashboard />
+        element: <LandingPage />
+      },
+      {
+        path: '*',
+        element: <Navigate to={'/404'} replace />
       }
     ]
   };
@@ -80,5 +100,3 @@ export default function RoleBasedRoutes(role) {
   const activeRoutes = role === 'admin' ? AdminRoutes : role === 'agent' ? AgentRoutes : role === 'customer' ? CustomerRoutes : GuestRoutes;
   return activeRoutes;
 }
-
-// export default [ AdminRoutes, AgentRoutes, CustomerRoutes ];

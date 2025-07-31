@@ -8,20 +8,19 @@ const CustomerLayout = Loadable(lazy(() => import('layouts/CustomerLayout')));
 
 // page imports
 const CustomerDashboard = Loadable(lazy(() => import('views/customer/')));
-
-import { ProtectedRoute } from './ProtectedRoutes';
+const NotFound = Loadable(lazy(() => import('views/not-found/')));
 
 const HomeRoute = {
   path: '/',
-  element: (
-    <ProtectedRoute>
-      <CustomerLayout />
-    </ProtectedRoute>
-  ),
+  element: <CustomerLayout />,
   children: [
     {
       index: true,
       element: <CustomerDashboard />
+    },
+    {
+      path: '/404',
+      element: <NotFound />
     }
   ]
 };

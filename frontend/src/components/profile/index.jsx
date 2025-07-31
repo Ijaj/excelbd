@@ -1,107 +1,109 @@
-import * as React from 'react';
-import Box from '@mui/material/Box';
-import Avatar from '@mui/material/Avatar';
-import Menu from '@mui/material/Menu';
-import MenuItem from '@mui/material/MenuItem';
-import ListItemIcon from '@mui/material/ListItemIcon';
-import Divider from '@mui/material/Divider';
-import IconButton from '@mui/material/IconButton';
-import Tooltip from '@mui/material/Tooltip';
-import Settings from '@mui/icons-material/Settings';
+/* eslint-disable react/prop-types */
+import { useMemo, useState } from 'react';
+import { Box, Avatar, Menu, MenuItem, IconButton, Typography, Divider, Tooltip, ListItemIcon } from '@mui/material';
 import Logout from '@mui/icons-material/Logout';
-import StyleIcon from '@mui/icons-material/Style';
+import AssignmentTurnedInIcon from '@mui/icons-material/AssignmentTurnedIn'; // Bookings icon
+import { Dashboard } from '@mui/icons-material';
 
-import { useAuth } from 'hooks/AuthProvider';
-import { getInitials, stringToColor } from 'utils/helper';
-
-export default function AccountMenu() {
-  const { user, logout } = useAuth();
-  const [anchorEl, setAnchorEl] = React.useState(null);
+const UserMenu = ({ name = 'John Doe', role = '', onLogout, onNagivate }) => {
+  const [anchorEl, setAnchorEl] = useState(null);
   const open = Boolean(anchorEl);
+
+  // role based menu items
+  const menuItems = useMemo(
+    () => ({
+      admin: [{ label: 'Dashboard', route: '/dashboard', icon: <Dashboard fontSize="small" /> }],
+      agent: [{ label: 'Dashboard', route: '/dashboard', icon: <Dashboard fontSize="small" /> }],
+      customer: [{ label: 'Bookings', route: '/bookings', icon: <AssignmentTurnedInIcon fontSize="small" /> }]
+    }),
+    []
+  );
+
   const handleClick = (event) => {
     setAnchorEl(event.currentTarget);
   };
-
   const handleClose = () => {
     setAnchorEl(null);
   };
 
-  function handleLogout() {
-    logout();
-    window.location.href = '/';
-  }
+  const initials = name
+    .split(' ')
+    .map((n) => n[0])
+    .join('')
+    .toUpperCase();
 
   return (
-    <React.Fragment>
-      <Box sx={{ display: 'flex', alignItems: 'center', textAlign: 'center' }}>
-        <Tooltip title="Account">
-          <IconButton
-            onClick={handleClick}
-            size="small"
-            sx={{ ml: 2 }}
-            aria-controls={open ? 'account-menu' : undefined}
-            aria-haspopup="true"
-            aria-expanded={open ? 'true' : undefined}
+    <Box display="flex" alignItems="center" gap={1}>
+      {/* Show user name */}
+      <Typography variant="subtitle1" fontWeight="500" sx={{ display: { xs: 'none', sm: 'block' } }}>
+        {name}
+      </Typography>
+
+      {/* Avatar button */}
+      <Tooltip title="Account menu">
+        <IconButton
+          onClick={handleClick}
+          size="small"
+          sx={{
+            borderRadius: '50%',
+            bgcolor: 'primary.main',
+            color: 'primary.contrastText',
+            '&:hover': { bgcolor: 'primary.dark' },
+            width: 40,
+            height: 40
+          }}
+        >
+          <Avatar
+            sx={{
+              bgcolor: 'transparent',
+              width: 36,
+              height: 36,
+              fontWeight: 'bold',
+              fontSize: '0.9rem'
+            }}
           >
-            <Avatar sx={{ width: 32, height: 32, bgcolor: stringToColor(user?.name) }}>{getInitials(user?.name)}</Avatar>
-          </IconButton>
-        </Tooltip>
-      </Box>
+            {initials}
+          </Avatar>
+        </IconButton>
+      </Tooltip>
+
+      {/* Dropdown Menu */}
       <Menu
         anchorEl={anchorEl}
-        id="account-menu"
         open={open}
         onClose={handleClose}
         onClick={handleClose}
         disableScrollLock
         slotProps={{
           paper: {
-            elevation: 0,
+            elevation: 4,
             sx: {
-              overflow: 'visible',
-              filter: 'drop-shadow(0px 2px 8px rgba(0,0,0,0.32))',
               mt: 1.5,
-              '& .MuiAvatar-root': {
-                width: 32,
-                height: 32,
-                ml: -0.5,
-                mr: 1
-              },
-              '&::before': {
-                content: '""',
-                display: 'block',
-                position: 'absolute',
-                top: 0,
-                right: 14,
-                width: 10,
-                height: 10,
-                bgcolor: 'background.paper',
-                transform: 'translateY(-50%) rotate(45deg)',
-                zIndex: 0
-              }
+              minWidth: 190,
+              borderRadius: 2,
+              overflow: 'hidden'
             }
           }
         }}
         transformOrigin={{ horizontal: 'right', vertical: 'top' }}
         anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
       >
-        <MenuItem onClick={handleClose}>
-          <StyleIcon /> &nbsp; Bookings
-        </MenuItem>
+        {menuItems[role].map((item, index) => (
+          <MenuItem key={index} onClick={() => onNagivate(item.route)}>
+            <ListItemIcon>{item.icon}</ListItemIcon>
+            {item.label}
+          </MenuItem>
+        ))}
         <Divider />
-        <MenuItem onClick={handleClose}>
-          <ListItemIcon>
-            <Settings fontSize="small" />
-          </ListItemIcon>
-          Profile
-        </MenuItem>
-        <MenuItem onClick={handleLogout}>
+        <MenuItem onClick={onLogout}>
           <ListItemIcon>
             <Logout fontSize="small" />
           </ListItemIcon>
           Logout
         </MenuItem>
       </Menu>
-    </React.Fragment>
+    </Box>
   );
-}
+};
+
+export default UserMenu;

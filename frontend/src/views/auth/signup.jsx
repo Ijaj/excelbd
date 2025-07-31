@@ -30,7 +30,7 @@ export default function SignUpPage() {
     email: '',
     password: '',
     confirmPassword: '',
-    company: '',
+    address: '',
     phone: '',
     agreeToTerms: false,
     subscribeNewsletter: true
@@ -52,8 +52,45 @@ export default function SignUpPage() {
     }
   };
 
+  const validateForm = () => {
+    const newErrors = {};
+
+    if (!formData.firstName.trim()) newErrors.firstName = 'First name is required';
+    if (!formData.lastName.trim()) newErrors.lastName = 'Last name is required';
+    if (!formData.email.trim()) {
+      newErrors.email = 'Email is required';
+    } else if (!/^[\w-.]+@([\w-]+\.)+[\w-]{2,4}$/.test(formData.email)) {
+      newErrors.email = 'Enter a valid email address';
+    }
+    if (!formData.address.trim()) newErrors.address = 'Address is required';
+    if (!formData.phone.trim()) {
+      newErrors.phone = 'Phone number is required';
+    } else if (!/^\d{10,15}$/.test(formData.phone)) {
+      newErrors.phone = 'Enter a valid phone number';
+    }
+    if (!formData.password) {
+      newErrors.password = 'Password is required';
+    } else if (formData.password.length < 6) {
+      newErrors.password = 'Password must be at least 6 characters';
+    }
+    if (!formData.confirmPassword) {
+      newErrors.confirmPassword = 'Confirm your password';
+    } else if (formData.password !== formData.confirmPassword) {
+      newErrors.confirmPassword = 'Passwords do not match';
+    }
+    if (!formData.agreeToTerms) {
+      newErrors.agreeToTerms = 'You must agree to the terms';
+    }
+    return newErrors;
+  };
+
   const handleSubmit = (event) => {
     event.preventDefault();
+    const validationErrors = validateForm();
+    if (Object.keys(validationErrors).length > 0) {
+      setErrors(validationErrors);
+      return;
+    }
     // Add your sign-up logic here
     console.log('Sign up data:', formData);
   };
@@ -154,6 +191,7 @@ export default function SignUpPage() {
               <Box sx={{ display: 'flex', gap: 2 }}>
                 <TextField
                   fullWidth
+                  name="firstName"
                   label="First Name"
                   value={formData.firstName}
                   onChange={handleInputChange('firstName')}
@@ -176,6 +214,7 @@ export default function SignUpPage() {
                 />
                 <TextField
                   fullWidth
+                  name="lastName"
                   label="Last Name"
                   value={formData.lastName}
                   onChange={handleInputChange('lastName')}
@@ -191,6 +230,7 @@ export default function SignUpPage() {
 
               <TextField
                 fullWidth
+                name="email"
                 label="Email Address"
                 type="email"
                 value={formData.email}
@@ -215,9 +255,12 @@ export default function SignUpPage() {
 
               <TextField
                 fullWidth
-                label="Company Name (Optional)"
-                value={formData.company}
-                onChange={handleInputChange('company')}
+                name="address"
+                label="Full Address"
+                value={formData.address}
+                onChange={handleInputChange('address')}
+                error={!!errors.address}
+                helperText={errors.address}
                 slotProps={{
                   input: {
                     startAdornment: (
@@ -237,8 +280,11 @@ export default function SignUpPage() {
               <TextField
                 fullWidth
                 label="Phone Number"
+                name="phone"
                 value={formData.phone}
                 onChange={handleInputChange('phone')}
+                error={!!errors.phone}
+                helperText={errors.phone}
                 slotProps={{
                   input: {
                     startAdornment: (
@@ -257,6 +303,7 @@ export default function SignUpPage() {
 
               <TextField
                 fullWidth
+                name="password"
                 label="Password"
                 type={showPassword ? 'text' : 'password'}
                 value={formData.password}
@@ -288,6 +335,7 @@ export default function SignUpPage() {
 
               <TextField
                 fullWidth
+                name="rePassword"
                 label="Confirm Password"
                 type={showConfirmPassword ? 'text' : 'password'}
                 value={formData.confirmPassword}

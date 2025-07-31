@@ -18,10 +18,15 @@ import {
   Avatar
 } from '@mui/material';
 import { LocalShipping, Visibility, VisibilityOff, Google, GitHub, Email, Lock } from '@mui/icons-material';
+import { useNavigate } from 'react-router-dom';
+
+import { useAuth } from 'hooks/AuthProvider';
 
 // Sign In Page Component
 export default function SignInPage() {
   const theme = useTheme();
+  const navigate = useNavigate();
+  const { login } = useAuth();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
@@ -46,10 +51,33 @@ export default function SignInPage() {
     }
   };
 
+  const validateForm = () => {
+    const newErrors = {};
+
+    if (!formData.email.trim()) {
+      newErrors.email = 'Email is required';
+    } else if (!/^[\w-.]+@([\w-]+\.)+[\w-]{2,4}$/.test(formData.email)) {
+      newErrors.email = 'Enter a valid email address';
+    }
+    if (!formData.password) {
+      newErrors.password = 'Password is required';
+    } else if (formData.password.length < 6) {
+      newErrors.password = 'Password must be at least 6 characters';
+    }
+    return newErrors;
+  };
+
   const handleSubmit = (event) => {
     event.preventDefault();
     // Add your sign-in logic here
     console.log('Sign in data:', formData);
+    const validationErrors = validateForm();
+    if (Object.keys(validationErrors).length > 0) {
+      setErrors(validationErrors);
+      return;
+    }
+    login({ ...formData, name: 'Ijaj Ahmed', role: 'agent' });
+    navigate('/', { replace: true });
   };
 
   const handleSocialLogin = (provider) => {
