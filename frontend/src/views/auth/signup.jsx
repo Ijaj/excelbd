@@ -15,11 +15,18 @@ import {
   useTheme,
   useMediaQuery,
   Stack,
-  Avatar
+  Avatar,
+  MenuItem,
+  FormControl,
+  InputLabel,
+  Select
 } from '@mui/material';
-import { LocalShipping, Visibility, VisibilityOff, Google, GitHub, Email, Lock, Person, Business, Phone } from '@mui/icons-material';
+import { LocalShipping, Visibility, VisibilityOff, Email, Lock, Person, Business, Phone } from '@mui/icons-material';
+import { service_register, validateForm } from 'services/auth-services';
+import { useAlert } from 'hooks/Alart';
 
 export default function SignUpPage() {
+  const notify = useAlert();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const [showPassword, setShowPassword] = useState(false);
@@ -28,12 +35,12 @@ export default function SignUpPage() {
     firstName: '',
     lastName: '',
     email: '',
+    role: 'customer',
     password: '',
     confirmPassword: '',
     address: '',
     phone: '',
-    agreeToTerms: false,
-    subscribeNewsletter: true
+    agreeToTerms: false
   });
   const [errors, setErrors] = useState({});
 
@@ -52,51 +59,16 @@ export default function SignUpPage() {
     }
   };
 
-  const validateForm = () => {
-    const newErrors = {};
-
-    if (!formData.firstName.trim()) newErrors.firstName = 'First name is required';
-    if (!formData.lastName.trim()) newErrors.lastName = 'Last name is required';
-    if (!formData.email.trim()) {
-      newErrors.email = 'Email is required';
-    } else if (!/^[\w-.]+@([\w-]+\.)+[\w-]{2,4}$/.test(formData.email)) {
-      newErrors.email = 'Enter a valid email address';
-    }
-    if (!formData.address.trim()) newErrors.address = 'Address is required';
-    if (!formData.phone.trim()) {
-      newErrors.phone = 'Phone number is required';
-    } else if (!/^\d{10,15}$/.test(formData.phone)) {
-      newErrors.phone = 'Enter a valid phone number';
-    }
-    if (!formData.password) {
-      newErrors.password = 'Password is required';
-    } else if (formData.password.length < 6) {
-      newErrors.password = 'Password must be at least 6 characters';
-    }
-    if (!formData.confirmPassword) {
-      newErrors.confirmPassword = 'Confirm your password';
-    } else if (formData.password !== formData.confirmPassword) {
-      newErrors.confirmPassword = 'Passwords do not match';
-    }
-    if (!formData.agreeToTerms) {
-      newErrors.agreeToTerms = 'You must agree to the terms';
-    }
-    return newErrors;
-  };
-
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
-    const validationErrors = validateForm();
+    const validationErrors = validateForm(formData);
     if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors);
       return;
     }
-    // Add your sign-up logic here
-    console.log('Sign up data:', formData);
-  };
 
-  const handleSocialSignUp = (provider) => {
-    console.log(`Sign up with ${provider}`);
+    const result = await service_register(formData);
+    notify(result);
   };
 
   return (
@@ -140,47 +112,9 @@ export default function SignUpPage() {
             </Typography>
           </Box>
 
-          {/* Social Sign Up Buttons */}
-          <Stack spacing={2} sx={{ mb: 3 }}>
-            <Button
-              fullWidth
-              variant="outlined"
-              startIcon={<Google />}
-              onClick={() => handleSocialSignUp('Google')}
-              sx={{
-                py: 1.5,
-                borderColor: theme.palette.divider,
-                color: theme.palette.text.primary,
-                '&:hover': {
-                  borderColor: theme.palette.primary.main,
-                  backgroundColor: theme.palette.primary.main + '08'
-                }
-              }}
-            >
-              Sign up with Google
-            </Button>
-            <Button
-              fullWidth
-              variant="outlined"
-              startIcon={<GitHub />}
-              onClick={() => handleSocialSignUp('GitHub')}
-              sx={{
-                py: 1.5,
-                borderColor: theme.palette.divider,
-                color: theme.palette.text.primary,
-                '&:hover': {
-                  borderColor: theme.palette.grey[800],
-                  backgroundColor: theme.palette.grey[800] + '08'
-                }
-              }}
-            >
-              Sign up with GitHub
-            </Button>
-          </Stack>
-
           <Divider sx={{ my: 3 }}>
             <Typography variant="body2" color="text.secondary">
-              Or create account with email
+              Create account with email
             </Typography>
           </Divider>
 
@@ -277,6 +211,20 @@ export default function SignUpPage() {
                 }}
               />
 
+              {/* Role Selection Dropdown */}
+              <FormControl fullWidth error={!!errors.role}>
+                <InputLabel id="role-label">I am</InputLabel>
+                <Select labelId="role-label" id="role" value={formData.role} label="Role" onChange={handleInputChange('role')}>
+                  <MenuItem value="customer">A Customer</MenuItem>
+                  <MenuItem value="agent">An Agent</MenuItem>
+                </Select>
+                {errors.role && (
+                  <Typography variant="caption" color="error">
+                    {errors.role}
+                  </Typography>
+                )}
+              </FormControl>
+
               <TextField
                 fullWidth
                 label="Phone Number"
@@ -335,7 +283,7 @@ export default function SignUpPage() {
 
               <TextField
                 fullWidth
-                name="rePassword"
+                name="confirmPassword"
                 label="Confirm Password"
                 type={showConfirmPassword ? 'text' : 'password'}
                 value={formData.confirmPassword}
@@ -382,12 +330,6 @@ export default function SignUpPage() {
                     </Typography>
                   }
                 />
-                <FormControlLabel
-                  control={
-                    <Checkbox checked={formData.subscribeNewsletter} onChange={handleInputChange('subscribeNewsletter')} color="primary" />
-                  }
-                  label="Subscribe to our newsletter for updates and tips"
-                />
               </Box>
 
               <Button
@@ -395,17 +337,15 @@ export default function SignUpPage() {
                 type="submit"
                 variant="contained"
                 size="large"
+                disabled={!formData.agreeToTerms}
                 sx={{
                   py: 1.5,
-                  borderRadius: 2,
                   fontSize: '1.1rem',
                   fontWeight: 600,
                   textTransform: 'none',
-                  background: `linear-gradient(135deg, ${theme.palette.secondary.main}, ${theme.palette.secondary.dark})`,
-                  boxShadow: `0 8px 24px ${theme.palette.secondary.main}40`,
                   '&:hover': {
-                    transform: 'translateY(-2px)',
-                    boxShadow: `0 12px 32px ${theme.palette.secondary.main}50`
+                    transform: 'translateY(-2px)'
+                    // boxShadow: `0 12px 32px ${theme.palette.secondary.main}50`
                   },
                   transition: 'all 0.3s ease-in-out'
                 }}

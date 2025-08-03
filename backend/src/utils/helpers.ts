@@ -1,4 +1,5 @@
 import { Request } from "express";
+import crypto from "crypto";
 import { verifyToken } from "../services/auth.service";
 import { User } from "../models/user.model";
 import { ApiError } from "./ApiError";
@@ -30,3 +31,15 @@ export const getUserIdFromToken = (token: string) => {
     throw new ApiError(498, "Invalid token");
   }
 };
+
+export function generateTrackingNumber(): string {
+  const timestamp = Date.now();
+  const randomHex = crypto.randomBytes(4).toString("hex").toUpperCase();
+  return `TRK-${timestamp}-${randomHex}`;
+}
+
+export function generateParcelId(): string {
+  const ts = Date.now().toString().slice(-5);
+  const rand = Math.random().toString(36).substring(2, 4).toUpperCase();
+  return `BK${ts}${rand}`;
+}

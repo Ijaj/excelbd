@@ -3,9 +3,10 @@ import jwt from "jsonwebtoken";
 import { User } from "../models/user.model";
 import { ApiError } from "../utils/ApiError";
 
-export const register = async ({ name, email, password }: any) => {
-  const hashed = await bcrypt.hash(password, 10);
-  const user = await User.create({ name, email, password: hashed });
+export const register = async (userData: any) => {
+  const hashedPassword = await bcrypt.hash(userData.password, 10);
+  const newData = { ...userData, password: hashedPassword };
+  const user = await User.create(newData);
   return jwt.sign({ id: user._id }, process.env.JWT_SECRET!, {
     expiresIn: "24h",
   });
@@ -13,12 +14,25 @@ export const register = async ({ name, email, password }: any) => {
 
 export const login = async ({ email, password }: any) => {
   const user = await User.findOne({ email });
-  if (!user) throw new ApiError(401, "Invalid Email", [{ field: "email", message: "Invalid Email" }]);
+  if (!user)
+    throw new ApiError(401, "Invalid Email", [
+      { field: "email", message: "Invalid Email" },
+    ]);
   const isMatch = await bcrypt.compare(password, user.password);
-  if (!isMatch) throw new ApiError(401, "Invalid Passowrd", [{ field: "password", message: "Invalid Password" }]);
-  return jwt.sign({ id: user._id }, process.env.JWT_SECRET!, {
-    expiresIn: "24h",
-  });
+  if (!isMatch)
+    throw new ApiError(401, "Invalid Passowrd", [
+      { field: "password", message: "Invalid Password" },
+    ]);
+
+  // Remove password before returning user
+  const { password: _password, ...userObj } = user.toObject();
+
+  return [
+    jwt.sign({ id: user._id }, process.env.JWT_SECRET!, {
+      expiresIn: "24h",
+    }),
+    userObj,
+  ];
 };
 
 export const verifyToken = (token: string) => {

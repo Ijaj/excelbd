@@ -14,9 +14,20 @@ const router = express.Router();
 router.post(
   "/register",
   [
-    body("name").notEmpty(),
+    body("firstName").notEmpty(),
+    body("lastName").notEmpty(),
     body("email").notEmpty().isEmail(),
     body("password").notEmpty().isAlphanumeric(),
+    body("confirmPassword")
+      .notEmpty()
+      .isAlphanumeric()
+      .if((value, { req }) => req.body.password === value),
+    body("role")
+      .notEmpty()
+      .isIn(["customer", "agent"])
+      .withMessage("Invalid value for role"),
+    body("address").notEmpty(),
+    body("phone").notEmpty().isMobilePhone("bn-BD"),
     validateMiddleware,
   ],
   registerUser
@@ -24,13 +35,20 @@ router.post(
 router.post(
   "/login",
   [
-    body("email").notEmpty().isEmail(),
-    body("password").notEmpty().isAlphanumeric(),
+    body("email")
+      .notEmpty()
+      .withMessage("Email is required")
+      .isEmail()
+      .withMessage("Invalid email format"),
+    body("password")
+      .notEmpty()
+      .withMessage("Password is required")
+      .isAlphanumeric()
+      .withMessage("Password must be alphanumeric"),
     validateMiddleware,
   ],
   loginUser
 );
 router.get("/verify", verifyUser);
-router.delete("/delete", [authMiddleware], _delete);
 
 export default router;

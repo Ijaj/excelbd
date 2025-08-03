@@ -14,7 +14,11 @@
     "@testing-library/user-event": "^13.5.0",
     "axios": "^1.11.0",
     "dayjs": "^1.11.13",
+    "file-saver": "^2.0.5",
+    "jspdf": "^2.5.1",
+    "jspdf-autotable": "^3.5.25",
     "material-react-table": "^3.2.1",
+    "papaparse": "^5.5.3",
     "prop-types": "^15.8.1",
     "react": "^19.1.1",
     "react-apexcharts": "^1.7.0",
@@ -25,6 +29,8 @@
     "react-router-dom": "^7.7.1",
     "react-scripts": "5.0.1",
     "redux": "^5.0.1",
+    "socket.io": "^4.8.1",
+    "socket.io-client": "^4.8.1",
     "web-vitals": "^2.1.4"
   },
   "scripts": {

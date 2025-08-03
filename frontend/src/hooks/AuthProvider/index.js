@@ -1,22 +1,11 @@
 /* eslint-disable react/prop-types */
 import { createContext, useState, useContext, useCallback } from 'react';
-import { getTTK } from 'utils/helper';
+import { getTTK, storeToken, storeUser, getStoredUser } from 'utils/helper';
 
 const AuthContext = createContext(null);
 
-function getStoredUser() {
-  const storedUser = localStorage.getItem('user');
-  try {
-    return storedUser ? JSON.parse(storedUser) : null;
-  } catch (error) {
-    console.error('Error parsing user from localStorage:', error);
-    return null;
-  }
-}
-
 function getUser() {
   const storedUser = getStoredUser();
-  console.log('storedUser: ', storedUser);
   if (!storedUser) return null;
   const isValid = new Date().getTime() < storedUser.ttk;
   return isValid ? storedUser : null;
@@ -25,10 +14,11 @@ function getUser() {
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(getUser());
 
-  const login = useCallback((userData) => {
+  const login = useCallback(({ user, token }) => {
     const ttk = getTTK();
-    const userWithTtk = { ...userData, ttk };
-    localStorage.setItem('user', JSON.stringify(userWithTtk));
+    const userWithTtk = { ...user, ttk };
+    storeToken(token);
+    storeUser(userWithTtk);
     setUser(userWithTtk);
   }, []);
 

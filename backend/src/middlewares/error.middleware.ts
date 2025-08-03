@@ -1,22 +1,22 @@
 import { Request, Response, NextFunction } from "express";
-// import { ApiError } from "../utils/ApiError";
+import { ApiError } from "../utils/ApiError";
 
 export const errorHandler = (
-  err: any,
+  err: ApiError,
   req: Request,
   res: Response,
   next: NextFunction
 ) => {
   console.error(err.stack);
+  console.error(err.errors ? err.errors : "No additional errors");
   const statusCode = err.statusCode || 500;
   const message = err.message || "Internal Server Error";
 
-  res
-    .status(statusCode)
-    .json({
-      message,
-      stack: process.env.NODE_ENV === "development" ? err.stack : undefined,
-    });
+  res.status(statusCode).json({
+    message,
+    stack: process.env.NODE_ENV === "development" ? err.stack : undefined,
+    errors: err.errors || [],
+  });
 };
 
 export const notFoundHandler = (

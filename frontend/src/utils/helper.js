@@ -55,3 +55,22 @@ function getTTK() {
 }
 
 export { formatDateForViewing, stringToColor, getInitials, getTimeBasedGreeting, getTTK, dayjs };
+
+export function storeToken(token) {
+  localStorage.setItem('tokn', token);
+}
+export function getToken() {
+  return localStorage.getItem('tokn');
+}
+
+export function storeUser(user) {
+  localStorage.setItem('user', JSON.stringify(user));
+}
+
+export function getStoredUser() {
+  try {
+    return JSON.parse(localStorage.getItem('user'));
+  } catch (error) {
+    return null;
+  }
+}

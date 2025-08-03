@@ -1,5 +1,5 @@
 /* eslint-disable react/prop-types */
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import {
   Box,
   Typography,
@@ -18,11 +18,12 @@ import {
   Card,
   CardContent,
   Alert,
-  Snackbar
+  Snackbar,
+  Fab,
+  useTheme
 } from '@mui/material';
 import {
   Edit as EditIcon,
-  PersonAdd as PersonAddIcon,
   Visibility as ViewIcon,
   Inventory as InventoryIcon,
   Schedule as ScheduleIcon,
@@ -30,23 +31,30 @@ import {
   CheckCircle as DeliveredIcon,
   People as PeopleIcon,
   SmsFailed,
-  AttachMoney
+  AttachMoney,
+  Add
 } from '@mui/icons-material';
 import { MaterialReactTable, useMaterialReactTable, MRT_ActionMenuItem } from 'material-react-table';
 
-import { statusConfig, priorityConfig, mockAgents, mockParcels, drawerWidth } from 'utils/constants';
+import { statusConfig, priorityConfig, drawerWidth } from 'utils/constants';
 import SideMenu from './components/SideBar';
 import { dayjs } from 'utils/helper';
+import BookingDetailDialog from 'components/booking-dialog';
+import { useAlert } from 'hooks/Alart';
+import { service_allParcels, service_updateParcel } from 'services/parcel-services';
+import BookingDialog from 'components/booking-dialog';
+import { service_allAgents } from 'services/user-service';
 
 function AdminDashboard() {
-  const [parcels, setParcels] = useState(mockParcels);
-  const [agents, setAgents] = useState(mockAgents);
+  const notify = useAlert();
+  const theme = useTheme();
+  const [parcels, setParcels] = useState([]);
+  const [agents, setAgents] = useState([]);
   const [selectedParcel, setSelectedParcel] = useState(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
-  const [assignDialogOpen, setAssignDialogOpen] = useState(false);
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
-  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
-  const [availableAgents] = useState(agents.filter((agent) => agent.currentParcels < agent.maxCapacity));
+  const [newParcelModalOpen, setNewParcelModalOpen] = useState(false);
+  const [availableAgents, setAvailableAgents] = useState(agents.filter((agent) => agent.currentParcels < agent.maxCapacity));
   const [dashboardStats, setDashboardStats] = useState({
     total: 0,
     pending: 0,
@@ -71,8 +79,37 @@ function AdminDashboard() {
     });
   }, [availableAgents.length, parcels]);
 
+  const fetchParcels = useCallback(async () => {
+    const result = await service_allParcels();
+    if (result) {
+      setParcels(result);
+    } else {
+      // Handle error case
+      notify({ message: 'Failed to fetch parcels', severity: 'error', duration: 6 });
+    }
+  }, [notify]);
+
+  const fetchAgents = useCallback(async () => {
+    const result = await service_allAgents();
+    if (result) {
+      setAgents(result);
+    } else {
+      notify({ message: 'Failed to fetch agents', severity: 'error', duration: 6 });
+    }
+  }, [notify]);
+
+  useEffect(() => {
+    fetchParcels();
+    fetchAgents();
+  }, [fetchAgents, fetchParcels]);
+
+  useEffect(() => {
+    if (agents.length > 0) {
+      setAvailableAgents(agents.filter((agent) => agent.currentParcels < agent.maxCapacity));
+    }
+  }, [agents]);
+
   // Available agents (not at capacity)
-  // const availableAgents = agents.filter((agent) => agent.currentParcels < agent.maxCapacity);
 
   const handleEditParcel = (parcel) => {
     setSelectedParcel({ ...parcel });
@@ -84,15 +121,25 @@ function AdminDashboard() {
     setViewDialogOpen(true);
   };
 
-  const handleAssignAgent = (parcel) => {
-    setSelectedParcel({ ...parcel });
-    setAssignDialogOpen(true);
-  };
-
-  const handleStatusUpdate = () => {
-    setParcels((prevParcels) => prevParcels.map((p) => (p.id === selectedParcel.id ? selectedParcel : p)));
+  const handleStatusUpdate = async () => {
+    // make api call first, if successful, update state
+    const result = await service_updateParcel(selectedParcel.trackingNumber, {
+      status: selectedParcel.status,
+      priority: selectedParcel.priority,
+      assignedAgent: selectedParcel.assignedAgent
+    });
+    setParcels((prevParcels) => prevParcels.map((p) => (p._id === selectedParcel._id ? selectedParcel : p)));
     setEditDialogOpen(false);
-    showSnackbar('Parcel status updated successfully', 'success');
+    if (result) {
+      notify({ message: 'Parcel status updated successfully', severity: 'success', duration: 6 });
+      handleAgentAssignment();
+    } else {
+      notify({ message: 'Failed to update parcel status', severity: 'error', duration: 6 });
+    }
+    setSelectedParcel(null);
+    setEditDialogOpen(false);
+    setViewDialogOpen(false);
+    setNewParcelModalOpen(false);
   };
 
   const handleAgentAssignment = () => {
@@ -117,17 +164,7 @@ function AdminDashboard() {
     }
 
     setParcels((prevParcels) => prevParcels.map((p) => (p.id === selectedParcel.id ? selectedParcel : p)));
-
-    setAssignDialogOpen(false);
-    showSnackbar('Agent assigned successfully', 'success');
-  };
-
-  const showSnackbar = (message, severity) => {
-    setSnackbar({ open: true, message, severity });
-  };
-
-  const handleCloseSnackbar = () => {
-    setSnackbar({ ...snackbar, open: false });
+    // TODO: show alert('Agent assigned successfully', 'success');
   };
 
   const getStatusChip = (status) => (
@@ -137,6 +174,18 @@ function AdminDashboard() {
   const getPriorityChip = (priority) => (
     <Chip label={priority.toUpperCase()} color={priorityConfig[priority].color} size="small" variant="outlined" />
   );
+
+  function openBookingModal() {
+    setNewParcelModalOpen(true);
+  }
+
+  function closeBookingModal() {
+    setNewParcelModalOpen(false);
+  }
+
+  function handlenNewBooking(formData) {
+    console.log(formData);
+  }
 
   // Material React Table columns configuration
   const columns = useMemo(
@@ -214,7 +263,7 @@ function AdminDashboard() {
         header: 'Agent',
         size: 150,
         Cell: ({ row }) => {
-          const agent = agents.find((a) => a.id === row.original.assignedAgent);
+          const agent = agents.find((a) => a._id === row.original.assignedAgent);
           return agent ? (
             <Chip label={agent.name} size="small" color="info" variant="outlined" />
           ) : (
@@ -292,25 +341,13 @@ function AdminDashboard() {
           closeMenu();
         }}
       />,
-      <MRT_ActionMenuItem
-        table={table}
-        icon={<PersonAddIcon />}
-        key="assign"
-        label="Assign Agent"
-        onClick={() => {
-          handleAssignAgent(row.original);
-          closeMenu();
-        }}
-        disabled={availableAgents.length === 0}
-      />
     ],
     renderTopToolbarCustomActions: () => (
       <Box sx={{ display: 'flex', gap: '0.5rem', p: '0.5rem', flexWrap: 'wrap' }}>
         <Button
           color="primary"
           onClick={() => {
-            // Refresh data logic here
-            showSnackbar('Data refreshed', 'success');
+            // TODO: show alert('Data refreshed', 'success');
           }}
           variant="contained"
           size="small"
@@ -324,10 +361,10 @@ function AdminDashboard() {
   return (
     <Box sx={{ flexGrow: 1 }}>
       <SideMenu />
-      <Box sx={{ mt: 4, mb: 4, px: 2, marginLeft: `${drawerWidth}px` }}>
+      <Box sx={{ mt: 0, mb: 4, px: 2, marginLeft: `${drawerWidth}px` }}>
         {/* Dashboard Stats */}
         <Grid container spacing={3} sx={{ mb: 4 }}>
-          <Grid size={{ xs: 12, sm: 6, md: 1.5 }}>
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
             <Card sx={{ height: '100%' }} elevation={6}>
               <CardContent>
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
@@ -347,7 +384,7 @@ function AdminDashboard() {
               </CardContent>
             </Card>
           </Grid>
-          <Grid size={{ xs: 12, sm: 6, md: 1.5 }}>
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
             <Card sx={{ height: '100%' }} elevation={6}>
               <CardContent>
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
@@ -367,7 +404,7 @@ function AdminDashboard() {
               </CardContent>
             </Card>
           </Grid>
-          <Grid size={{ xs: 12, sm: 6, md: 1.5 }}>
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
             <Card sx={{ height: '100%' }} elevation={6}>
               <CardContent>
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
@@ -387,7 +424,7 @@ function AdminDashboard() {
               </CardContent>
             </Card>
           </Grid>
-          <Grid size={{ xs: 12, sm: 6, md: 1.5 }}>
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
             <Card sx={{ height: '100%' }} elevation={6}>
               <CardContent>
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
@@ -407,7 +444,7 @@ function AdminDashboard() {
               </CardContent>
             </Card>
           </Grid>
-          <Grid size={{ xs: 12, sm: 6, md: 1.5 }}>
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
             <Card sx={{ height: '100%' }} elevation={6}>
               <CardContent>
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
@@ -427,7 +464,7 @@ function AdminDashboard() {
               </CardContent>
             </Card>
           </Grid>
-          <Grid size={{ xs: 12, sm: 6, md: 1.5 }}>
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
             <Card sx={{ height: '100%' }} elevation={6}>
               <CardContent>
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
@@ -447,7 +484,7 @@ function AdminDashboard() {
               </CardContent>
             </Card>
           </Grid>
-          <Grid size={{ xs: 12, sm: 6, md: 1.5 }}>
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
             <Card sx={{ height: '100%' }} elevation={6}>
               <CardContent>
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
@@ -467,7 +504,7 @@ function AdminDashboard() {
               </CardContent>
             </Card>
           </Grid>
-          <Grid size={{ xs: 12, sm: 6, md: 1.5 }}>
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
             <Card sx={{ height: '100%' }} elevation={6}>
               <CardContent>
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
@@ -493,109 +530,22 @@ function AdminDashboard() {
         <MaterialReactTable table={table} />
       </Box>
 
-      {/* View Parcel Details Dialog */}
-      <Dialog open={viewDialogOpen} onClose={() => setViewDialogOpen(false)} maxWidth="md" fullWidth>
-        <DialogTitle>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <ViewIcon color="primary" />
-            Parcel Details
-          </Box>
-        </DialogTitle>
-        <DialogContent>
-          {selectedParcel && (
-            <Grid container spacing={3} sx={{ mt: 1 }}>
-              <Grid item xs={12} md={6}>
-                <Paper sx={{ p: 2 }}>
-                  <Typography variant="h6" gutterBottom color="primary">
-                    Tracking Information
-                  </Typography>
-                  <Typography variant="body2" gutterBottom>
-                    <strong>Tracking Number:</strong> {selectedParcel.trackingNumber}
-                  </Typography>
-                  <Typography variant="body2" gutterBottom>
-                    <strong>Parcel ID:</strong> {selectedParcel.id}
-                  </Typography>
-                  <Typography variant="body2" gutterBottom>
-                    <strong>Status:</strong> {getStatusChip(selectedParcel.status)}
-                  </Typography>
-                  <Typography variant="body2" gutterBottom>
-                    <strong>Priority:</strong> {getPriorityChip(selectedParcel.priority)}
-                  </Typography>
-                  <Typography variant="body2" gutterBottom>
-                    <strong>Current Location:</strong> {selectedParcel.location}
-                  </Typography>
-                </Paper>
-              </Grid>
+      {/* Floating Action Button to open booking dialog */}
+      <Fab
+        color="primary"
+        sx={{
+          position: 'fixed',
+          bottom: 24,
+          right: 24,
+          background: `linear-gradient(135deg, ${theme.palette.primary.main}, ${theme.palette.secondary.main})`
+        }}
+        onClick={openBookingModal}
+      >
+        <Add />
+      </Fab>
+      <BookingDialog open={newParcelModalOpen} onClose={closeBookingModal} onSubmit={handlenNewBooking} />
 
-              <Grid item xs={12} md={6}>
-                <Paper sx={{ p: 2 }}>
-                  <Typography variant="h6" gutterBottom color="secondary">
-                    Package Details
-                  </Typography>
-                  <Typography variant="body2" gutterBottom>
-                    <strong>Weight:</strong> {selectedParcel.packageDetails.weight}
-                  </Typography>
-                  <Typography variant="body2" gutterBottom>
-                    <strong>Dimensions:</strong> {selectedParcel.packageDetails.dimensions}
-                  </Typography>
-                  <Typography variant="body2" gutterBottom>
-                    <strong>Value:</strong> {selectedParcel.packageDetails.value}
-                  </Typography>
-                  <Typography variant="body2" gutterBottom>
-                    <strong>Description:</strong> {selectedParcel.packageDetails.description}
-                  </Typography>
-                  <Typography variant="body2" gutterBottom>
-                    <strong>Shipping Cost:</strong> ${selectedParcel.cost}
-                  </Typography>
-                </Paper>
-              </Grid>
-
-              <Grid item xs={12} md={6}>
-                <Paper sx={{ p: 2 }}>
-                  <Typography variant="h6" gutterBottom color="success.main">
-                    Sender Information
-                  </Typography>
-                  <Typography variant="body2" gutterBottom>
-                    <strong>Name:</strong> {selectedParcel.sender.name}
-                  </Typography>
-                  <Typography variant="body2" gutterBottom>
-                    <strong>Company:</strong> {selectedParcel.sender.company}
-                  </Typography>
-                  <Typography variant="body2" gutterBottom>
-                    <strong>Email:</strong> {selectedParcel.sender.email}
-                  </Typography>
-                  <Typography variant="body2" gutterBottom>
-                    <strong>Phone:</strong> {selectedParcel.sender.phone}
-                  </Typography>
-                </Paper>
-              </Grid>
-
-              <Grid item xs={12} md={6}>
-                <Paper sx={{ p: 2 }}>
-                  <Typography variant="h6" gutterBottom color="info.main">
-                    Recipient Information
-                  </Typography>
-                  <Typography variant="body2" gutterBottom>
-                    <strong>Name:</strong> {selectedParcel.recipient.name}
-                  </Typography>
-                  <Typography variant="body2" gutterBottom>
-                    <strong>Company:</strong> {selectedParcel.recipient.company}
-                  </Typography>
-                  <Typography variant="body2" gutterBottom>
-                    <strong>Email:</strong> {selectedParcel.recipient.email}
-                  </Typography>
-                  <Typography variant="body2" gutterBottom>
-                    <strong>Phone:</strong> {selectedParcel.recipient.phone}
-                  </Typography>
-                </Paper>
-              </Grid>
-            </Grid>
-          )}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setViewDialogOpen(false)}>Close</Button>
-        </DialogActions>
-      </Dialog>
+      <BookingDetailDialog detailsOpen={viewDialogOpen} selectedBooking={selectedParcel} setDetailsOpen={setViewDialogOpen} />
 
       {/* Edit Status Dialog */}
       <Dialog open={editDialogOpen} onClose={() => setEditDialogOpen(false)} maxWidth="sm" fullWidth>
@@ -607,12 +557,15 @@ function AdminDashboard() {
         </DialogTitle>
         <DialogContent>
           <Grid container spacing={2} sx={{ mt: 1 }}>
-            <Grid item xs={12}>
-              <Typography variant="body2" color="textSecondary" gutterBottom>
-                Tracking Number: {selectedParcel?.trackingNumber}
+            <Grid size={{ xs: 12 }} sx={{ display: 'flex' }}>
+              <Typography variant="h6" color="textSecondary" gutterBottom>
+                Tracking Number:&nbsp;
+              </Typography>
+              <Typography variant="h6" fontWeight="medium" color="info.main">
+                {selectedParcel?.trackingNumber}
               </Typography>
             </Grid>
-            <Grid item xs={12}>
+            <Grid size={{ xs: 6 }}>
               <FormControl fullWidth>
                 <InputLabel>Status</InputLabel>
                 <Select
@@ -628,7 +581,7 @@ function AdminDashboard() {
                 </Select>
               </FormControl>
             </Grid>
-            <Grid item xs={12}>
+            <Grid size={{ xs: 6 }}>
               <FormControl fullWidth>
                 <InputLabel>Priority</InputLabel>
                 <Select
@@ -642,47 +595,29 @@ function AdminDashboard() {
                 </Select>
               </FormControl>
             </Grid>
-          </Grid>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setEditDialogOpen(false)}>Cancel</Button>
-          <Button onClick={handleStatusUpdate} variant="contained">
-            Update
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* Assign Agent Dialog */}
-      <Dialog open={assignDialogOpen} onClose={() => setAssignDialogOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <PersonAddIcon color="secondary" />
-            Assign Agent
-          </Box>
-        </DialogTitle>
-        <DialogContent>
-          <Grid container spacing={2} sx={{ mt: 1 }}>
-            <Grid item xs={12}>
-              <Typography variant="body2" color="textSecondary" gutterBottom>
-                Tracking Number: {selectedParcel?.trackingNumber}
-              </Typography>
-            </Grid>
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <FormControl fullWidth>
                 <InputLabel>Available Agents</InputLabel>
                 <Select
                   value={selectedParcel?.assignedAgent || ''}
                   label="Available Agents"
-                  onChange={(e) =>
+                  onChange={(e) => {
+                    console.log(selectedParcel);
+                    console.log(e.target);
                     setSelectedParcel({
                       ...selectedParcel,
                       assignedAgent: e.target.value,
                       originalAgent: selectedParcel?.assignedAgent
-                    })
-                  }
+                    });
+                  }}
                 >
+                  <MenuItem key={'agent._id'} value={null}>
+                    <Box>
+                      <Typography>Un-Assign</Typography>
+                    </Box>
+                  </MenuItem>
                   {availableAgents.map((agent) => (
-                    <MenuItem key={agent.id} value={agent.id}>
+                    <MenuItem key={agent._id} value={agent._id}>
                       <Box>
                         <Typography>{agent.name}</Typography>
                         <Typography variant="caption" color="textSecondary">
@@ -695,26 +630,19 @@ function AdminDashboard() {
               </FormControl>
             </Grid>
             {availableAgents.length === 0 && (
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12 }}>
                 <Alert severity="warning">No agents are currently available. All agents are at capacity.</Alert>
               </Grid>
             )}
           </Grid>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setAssignDialogOpen(false)}>Cancel</Button>
-          <Button onClick={handleAgentAssignment} variant="contained" disabled={!selectedParcel?.assignedAgent}>
-            Assign
+          <Button onClick={() => setEditDialogOpen(false)}>Cancel</Button>
+          <Button onClick={handleStatusUpdate} variant="contained">
+            Update
           </Button>
         </DialogActions>
       </Dialog>
-
-      {/* Snackbar for notifications */}
-      <Snackbar open={snackbar.open} autoHideDuration={6000} onClose={handleCloseSnackbar}>
-        <Alert onClose={handleCloseSnackbar} severity={snackbar.severity} sx={{ width: '100%' }}>
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
     </Box>
   );
 }

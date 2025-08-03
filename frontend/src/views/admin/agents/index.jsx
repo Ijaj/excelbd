@@ -1,13 +1,30 @@
 /* eslint-disable react/prop-types */
-import React, { useMemo } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Box, Grid, Typography, Avatar, Chip, LinearProgress, Stack } from '@mui/material';
 import { MaterialReactTable, useMaterialReactTable } from 'material-react-table';
-import { drawerWidth, mockAgents, mockParcels, priorityConfig, statusConfig } from 'utils/constants';
+import { drawerWidth } from 'utils/constants';
 
 import SideMenu from '../components/SideBar';
+import { useAlert } from 'hooks/Alart';
+import { service_allAgents } from 'services/user-service';
 
 export default function AllAgents() {
-  /** === Agents Table Columns === */
+  const notify = useAlert();
+  const [agents, setAgents] = useState([]);
+
+  const fetchAgents = useCallback(async () => {
+    const result = await service_allAgents();
+    if (result) {
+      setAgents(result);
+    } else {
+      notify({ message: 'Failed to fetch agents', severity: 'error', duration: 6 });
+    }
+  }, [notify]);
+
+  useEffect(() => {
+    fetchAgents();
+  }, [fetchAgents]);
+
   const agentColumns = useMemo(
     () => [
       {
@@ -52,48 +69,7 @@ export default function AllAgents() {
 
   const agentTable = useMaterialReactTable({
     columns: agentColumns,
-    data: mockAgents,
-    enableSorting: false,
-    enableColumnFilters: false,
-    enablePagination: false,
-    muiTablePaperProps: { sx: { borderRadius: 2 } },
-    muiTableContainerProps: { sx: { maxHeight: 400 } }
-  });
-
-  /** === Parcels Table Columns === */
-  const parcelColumns = useMemo(
-    () => [
-      {
-        accessorKey: 'trackingNumber',
-        header: 'Tracking #',
-        enableClickToCopy: true
-      },
-      {
-        accessorKey: 'status',
-        header: 'Status',
-        Cell: ({ cell }) => {
-          const status = cell.getValue();
-          const conf = statusConfig[status];
-          return <Chip size="small" color={conf.color} icon={conf.icon} label={conf.label} />;
-        }
-      },
-      {
-        accessorKey: 'priority',
-        header: 'Priority',
-        Cell: ({ cell }) => {
-          const prio = cell.getValue();
-          const conf = priorityConfig[prio];
-          return <Chip size="small" color={conf.color} label={conf.label} variant="outlined" />;
-        }
-      },
-      { accessorKey: 'location', header: 'Location' }
-    ],
-    []
-  );
-
-  const parcelTable = useMaterialReactTable({
-    columns: parcelColumns,
-    data: mockParcels.slice(0, 8),
+    data: agents,
     enableSorting: false,
     enableColumnFilters: false,
     enablePagination: false,
@@ -115,13 +91,6 @@ export default function AllAgents() {
             Active Agents
           </Typography>
           <MaterialReactTable table={agentTable} />
-        </Grid>
-
-        <Grid size={{ xs: 12, md: 12 }}>
-          <Typography variant="h6" mb={1}>
-            Recent Parcels
-          </Typography>
-          <MaterialReactTable table={parcelTable} />
         </Grid>
       </Grid>
     </Box>

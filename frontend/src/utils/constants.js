@@ -18,7 +18,7 @@ export const priorityConfig = {
 
 export const paymentMethods = {
   cod: { label: 'Cash On Delivery' },
-  online: { label: 'Card or Bkash' }
+  'pre-paid': { label: 'Pre-Paid' }
 };
 
 // Mock data for parcels
@@ -32,6 +32,12 @@ export const mockParcels = [
     recipient: { name: 'Sarah Johnson', company: 'Design Studio Inc', email: 'sarah@designstudio.com', phone: '+0987654321' },
     packageDetails: { weight: '2.5 kg', value: '$250', description: 'Electronics Equipment', dimensions: '30x20x15 cm' },
     dates: { created: '2024-01-15', pickup: '2024-01-15', estimated: '2024-01-17' },
+    timeline: [
+      { status: 'created', timestamp: '2024-01-10T09:15:00Z', location: 'Miami Hub' },
+      { status: 'picked-up', timestamp: '2024-01-10T11:30:00Z', location: 'Miami Hub' },
+      { status: 'in-transit', timestamp: '2024-01-11T07:00:00Z', location: 'Atlanta Hub' },
+      { status: 'delivered', timestamp: '2024-01-12T15:45:00Z', location: 'Seattle Hub' }
+    ],
     assignedAgent: 'AG003',
     cost: 45.99,
     location: 'Chicago Hub',
@@ -46,6 +52,12 @@ export const mockParcels = [
     recipient: { name: 'Lisa Davis', company: 'XYZ Ltd', email: 'lisa@xyzltd.com', phone: '+5566778899' },
     packageDetails: { weight: '1.2 kg', value: '$150', description: 'Office Supplies', dimensions: '25x15x10 cm' },
     dates: { created: '2024-01-16', pickup: null, estimated: '2024-01-18' },
+    timeline: [
+      { status: 'created', timestamp: '2024-01-10T09:15:00Z', location: 'Miami Hub' },
+      { status: 'picked-up', timestamp: '2024-01-10T11:30:00Z', location: 'Miami Hub' },
+      { status: 'in-transit', timestamp: '2024-01-11T07:00:00Z', location: 'Atlanta Hub' },
+      { status: 'delivered', timestamp: '2024-01-12T15:45:00Z', location: 'Seattle Hub' }
+    ],
     assignedAgent: null,
     cost: 25.5,
     location: 'New York Hub',
@@ -60,10 +72,16 @@ export const mockParcels = [
     recipient: { name: 'Tom Anderson', company: 'Retail Store', email: 'tom@retailstore.com', phone: '+4433221100' },
     packageDetails: { weight: '3.8 kg', value: '$500', description: 'Fashion Items', dimensions: '40x30x20 cm' },
     dates: { created: '2024-01-14', pickup: '2024-01-14', estimated: '2024-01-15' },
+    timeline: [
+      { status: 'created', timestamp: '2024-01-10T09:15:00Z', location: 'Miami Hub' },
+      { status: 'picked-up', timestamp: '2024-01-10T11:30:00Z', location: 'Miami Hub' },
+      { status: 'in-transit', timestamp: '2024-01-11T07:00:00Z', location: 'Atlanta Hub' },
+      { status: 'delivered', timestamp: '2024-01-12T15:45:00Z', location: 'Seattle Hub' }
+    ],
     assignedAgent: 'AG001',
     cost: 75.0,
     location: 'Los Angeles Hub',
-    paymentMethod: 'online'
+    paymentMethod: 'pre-paid'
   },
   {
     id: 'BK004',
@@ -74,6 +92,12 @@ export const mockParcels = [
     recipient: { name: 'Dr. Helen White', company: 'City Hospital', email: 'helen@cityhospital.com', phone: '+1122557788' },
     packageDetails: { weight: '5.2 kg', value: '$800', description: 'Medical Equipment', dimensions: '50x40x30 cm' },
     dates: { created: '2024-01-17', pickup: '2024-01-17', estimated: '2024-01-18' },
+    timeline: [
+      { status: 'created', timestamp: '2024-01-10T09:15:00Z', location: 'Miami Hub' },
+      { status: 'picked-up', timestamp: '2024-01-10T11:30:00Z', location: 'Miami Hub' },
+      { status: 'in-transit', timestamp: '2024-01-11T07:00:00Z', location: 'Atlanta Hub' },
+      { status: 'delivered', timestamp: '2024-01-12T15:45:00Z', location: 'Seattle Hub' }
+    ],
     assignedAgent: 'AG002',
     cost: 95.0,
     location: 'Dallas Hub',
@@ -88,10 +112,16 @@ export const mockParcels = [
     recipient: { name: 'Mark Thompson', company: 'Library Services', email: 'mark@library.com', phone: '+9988774411' },
     packageDetails: { weight: '0.8 kg', value: '$75', description: 'Books', dimensions: '30x25x5 cm' },
     dates: { created: '2024-01-13', pickup: '2024-01-13', estimated: '2024-01-15' },
+    timeline: [
+      { status: 'created', timestamp: '2024-01-10T09:15:00Z', location: 'Miami Hub' },
+      { status: 'picked-up', timestamp: '2024-01-10T11:30:00Z', location: 'Miami Hub' },
+      { status: 'in-transit', timestamp: '2024-01-11T07:00:00Z', location: 'Atlanta Hub' },
+      { status: 'delivered', timestamp: '2024-01-12T15:45:00Z', location: 'Seattle Hub' }
+    ],
     assignedAgent: 'AG004',
     cost: 18.5,
     location: 'Miami Hub',
-    paymentMethod: 'online'
+    paymentMethod: 'pre-paid'
   },
   {
     id: 'BK105',
@@ -102,6 +132,12 @@ export const mockParcels = [
     recipient: { name: 'Mark Thompson', company: 'Library Services', email: 'mark@library.com', phone: '+9988774411' },
     packageDetails: { weight: '0.8 kg', value: '$75', description: 'Books', dimensions: '30x25x5 cm' },
     dates: { created: '2024-01-13', pickup: '2024-01-13', estimated: '2024-01-15' },
+    timeline: [
+      { status: 'created', timestamp: '2024-01-10T09:15:00Z', location: 'Miami Hub' },
+      { status: 'picked-up', timestamp: '2024-01-10T11:30:00Z', location: 'Miami Hub' },
+      { status: 'in-transit', timestamp: '2024-01-11T07:00:00Z', location: 'Atlanta Hub' },
+      { status: 'delivered', timestamp: '2024-01-12T15:45:00Z', location: 'Seattle Hub' }
+    ],
     assignedAgent: 'AG004',
     cost: 18.5,
     location: 'Miami Hub',

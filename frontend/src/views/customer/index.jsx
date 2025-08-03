@@ -109,7 +109,7 @@ const CustomerLandingPage = () => {
       >
         <Container maxWidth="xl">
           <Grid container spacing={6} alignItems="center">
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <Box sx={{ position: 'relative', zIndex: 1 }}>
                 <Typography
                   variant={isMobile ? 'h3' : 'h2'}
@@ -195,7 +195,7 @@ const CustomerLandingPage = () => {
 
                 <Grid container spacing={4}>
                   {stats.map((stat, index) => (
-                    <Grid item xs={4} key={index}>
+                    <Grid size={{ xs: 4 }} key={index}>
                       <Box sx={{ textAlign: 'center' }}>
                         <Typography
                           variant="h4"
@@ -225,7 +225,7 @@ const CustomerLandingPage = () => {
               </Box>
             </Grid>
 
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <Box
                 sx={{
                   display: 'flex',

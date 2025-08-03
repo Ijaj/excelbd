@@ -9,7 +9,6 @@ export const ProtectedRoute = ({ children }) => {
   // maybe add server side token validation periodically :)
 
   const { isLoggedIn, validateUser, logout } = useAuth();
-  console.log('isLoggedIn: ', isLoggedIn);
   if (isLoggedIn && validateUser()) {
     return children;
   } else {

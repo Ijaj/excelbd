@@ -1,93 +1,136 @@
-import { Request, Response, NextFunction } from "express";
-import { getTokenFromRequest, getUserIdFromToken } from "../utils/helpers";
-import { User } from "../models/user.model";
-import { Task } from "../models/task.model";
+import { Request, Response } from "express";
 import { UserDocument } from "../types/user.types";
-import { Types } from "mongoose";
+import { socketService } from "../services/socket.service";
+import {
+  getAllAgentsService,
+  getAllAvailableAgentsService,
+  getAllCustomersService,
+  getUserById,
+} from "../services/user.service";
+import { User } from "../models/user.model";
 
-export const getTasks = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
+export const getAllUsers = async (req: Request, res: Response) => {
+  const user: UserDocument = req.user as UserDocument;
+  if (!user || user.role !== "admin") {
+    res.status(403).json({ error: "Access denied" });
+    return;
+  }
+
   try {
-    const token = getTokenFromRequest(req);
-    const id = getUserIdFromToken(token);
-    const user = await User.findById(id).populate("tasks");
-    if (!user) {
-      res.status(401).json({ message: "Unauthorized" });
-    } else {
-      res.status(200).json(user.tasks);
-    }
+    const users = await User.find().select("-password");
+    res.json(users);
   } catch (err) {
-    next(err);
+    res.status(500).json({ error: "Failed to fetch users" });
   }
 };
 
-export const upsertTask = async (
-  req: Request<
-    {},
-    {},
-    {
-      id?: string;
-      category: string;
-      description: string;
-      status: string;
-      endDate: string;
-    },
-    {}
-  >,
-  res: Response
-) => {
-  const user: UserDocument | null = req.user;
-  if (!user) {
-    res.status(404).json({ message: "User not found" });
-  } else {
-    const { id, category, description, status, endDate } = req.body;
-    let task;
-    let statusCode = 200;
-    let payload = {};
-    try {
-      if (!id) {
-        // create
-        task = await Task.create({
-          category,
-          description,
-          status,
-          endDate,
-        });
-        user.tasks.push(task);
-        statusCode = 201;
-        payload = { message: "Task Created" };
-      } else if (id && !Types.ObjectId.isValid(id)) {
-        // 404 invalid task id
-        statusCode = 404;
-        payload = { message: "Invalid Task ID" };
-      } else {
-        // update
-        const updated = await Task.findByIdAndUpdate(id, {
-          category,
-          description,
-          status,
-          endDate,
-        });
-        if (updated) {
-          statusCode = 200;
-          payload = updated;
-        } else {
-          statusCode = 404;
-          payload = { message: "Task Not Found" };
-        }
-      }
-    } catch (error) {
-      statusCode = 500;
-      payload = {
-        message:
-          error instanceof Error ? error.message : "Internal Server Error",
-      };
+export const getAllAgents = async (req: Request, res: Response) => {
+  try {
+    const agents = await getAllAgentsService();
+    res.json(agents);
+  } catch (err) {
+    res.status(500).json({ error: "Failed to fetch agents" });
+  }
+};
+
+export const getAllAvailableAgents = async (req: Request, res: Response) => {
+  try {
+    const availableAgents = await getAllAvailableAgentsService();
+    res.json(availableAgents);
+  } catch (err) {
+    res.status(500).json({ error: "Failed to fetch available agents" });
+  }
+};
+
+export const getAllCustomers = async (req: Request, res: Response) => {
+  try {
+    const customers = await getAllCustomersService();
+    res.json(customers);
+  } catch (err) {
+    res.status(500).json({ error: "Failed to fetch customers" });
+  }
+};
+
+export const getAgentById = async (req: Request, res: Response) => {
+  // get agent by id
+  const user: UserDocument = req.user as UserDocument;
+  if (!user || user.role !== "admin") {
+    res.status(403).json({ error: "Access denied" });
+    return;
+  }
+
+  const agentId = req.params.id;
+  if (!agentId) {
+    res.status(400).json({ error: "Agent ID is required" });
+    return;
+  }
+
+  try {
+    const agent = await getAllAgentsService(agentId);
+    if (!agent) {
+      res.status(404).json({ error: "Agent not found" });
+      return;
     }
-    await user.save();
-    await task?.save();
-    res.status(statusCode).json(payload);
+    res.json(agent);
+  } catch (err) {
+    res.status(500).json({ error: "Failed to fetch agent" });
+  }
+};
+
+export const getCustomerById = async (req: Request, res: Response) => {
+  // get customer by id
+  const user: UserDocument = req.user as UserDocument;
+  if (
+    !user ||
+    user.role === "agent" ||
+    (user.role === "customer" &&
+      req.params.id !== (user._id as string).toString())
+  ) {
+    res.status(403).json({ error: "Access denied" });
+    return;
+  }
+
+  const customerId = req.params.id;
+  if (!customerId) {
+    res.status(400).json({ error: "Customer ID is required" });
+    return;
+  }
+
+  try {
+    const customer = await getUserById(customerId);
+    if (!customer) {
+      res.status(404).json({ error: "Customer not found" });
+      return;
+    }
+    res.json(customer);
+  } catch (err) {
+    res.status(500).json({ error: "Failed to fetch customer" });
+  }
+};
+
+export const getParcelsByCustomerId = async (req: Request, res: Response) => {
+  // get parcels by customer id
+  const user: UserDocument = req.user as UserDocument;
+  if (
+    !user ||
+    user.role === "agent" ||
+    (user.role === "customer" &&
+      req.params.id !== (user._id as string).toString())
+  ) {
+    res.status(403).json({ error: "Access denied" });
+    return;
+  }
+
+  const customerId = req.params.id;
+  if (!customerId) {
+    res.status(400).json({ error: "Customer ID is required" });
+    return;
+  }
+
+  try {
+    // const parcels = await socketService.getParcelsByCustomerId(customerId);
+    // res.json(parcels);
+  } catch (err) {
+    res.status(500).json({ error: "Failed to fetch parcels" });
   }
 };

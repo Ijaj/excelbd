@@ -5,7 +5,8 @@ import { errorHandler, notFoundHandler } from "./middlewares/error.middleware";
 
 // routes imports
 import authRoutes from "./routes/auth.routes";
-import userRouter from "./routes/user.routes";
+import parcelRoutes from "./routes/parcel.routes";
+import userRoutes from "./routes/user.routes";
 
 // mongoose
 import mongoose from "mongoose";
@@ -22,7 +23,8 @@ app.use(express.json());
 
 // Routes
 app.use("/api/auth", authRoutes);
-app.use("/api/user", userRouter);
+app.use("/api/parcel", parcelRoutes);
+app.use("/api/user", userRoutes);
 
 // health check api
 

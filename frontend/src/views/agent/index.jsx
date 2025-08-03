@@ -8,7 +8,6 @@ import {
   Avatar,
   Stack,
   Box,
-  Tooltip,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -18,31 +17,57 @@ import {
   InputLabel,
   Select,
   MenuItem,
+  IconButton,
   TextField,
-  IconButton
+  Menu,
+  ListItemIcon,
+  ListItemText
 } from '@mui/material';
-import { useState, useMemo, useRef, useEffect } from 'react';
-import { MaterialReactTable, useMaterialReactTable } from 'material-react-table';
-import { mockParcels, statusConfig, priorityConfig, paymentMethods } from 'utils/constants';
+import { useState, useMemo, useEffect, useCallback } from 'react';
+import { MaterialReactTable, MRT_ActionMenuItem, useMaterialReactTable } from 'material-react-table';
+import { statusConfig, priorityConfig, paymentMethods } from 'utils/constants';
 import LocalShippingIcon from '@mui/icons-material/LocalShipping';
 import AssignmentIcon from '@mui/icons-material/Assignment';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import PendingActionsIcon from '@mui/icons-material/PendingActions';
 import EditIcon from '@mui/icons-material/Edit';
+import MoreVertIcon from '@mui/icons-material/MoreVert';
+import VisibilityIcon from '@mui/icons-material/Visibility';
+import { service_parcelsByAgent, service_updateParcel } from 'services/parcel-services';
+import { useAlert } from 'hooks/Alart';
+import { useAuth } from 'hooks/AuthProvider';
+import BookingDetailDialog from 'components/booking-dialog';
 
-export default function AgentDashboard({ agentCode = 'AG003' }) {
+export default function AgentDashboard() {
+  const { user } = useAuth();
+  const notify = useAlert();
   const [selectedParcel, setSelectedParcel] = useState(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [newStatus, setNewStatus] = useState('');
-  const [notes, setNotes] = useState('');
-  const renders = useRef(0);
-  const [agentParcels, setAgentParcels] = useState(mockParcels.filter((p) => p.assignedAgent === agentCode));
+  const [note, setNote] = useState(''); // Add notes state near other state declarations
+  const [agentParcels, setAgentParcels] = useState([]);
   const [stats, setStats] = useState({
     totalParcels: 0,
     pending: 0,
     picked: 0,
     delivered: 0
   });
+  const [anchorEl, setAnchorEl] = useState(null);
+  const [selectedMenuParcel, setSelectedMenuParcel] = useState(null);
+  const [detailsOpen, setDetailsOpen] = useState(false);
+
+  const fetchAgentParcels = useCallback(async () => {
+    const parcels = await service_parcelsByAgent(user._id);
+    if (parcels && Array.isArray(parcels)) {
+      setAgentParcels(parcels);
+    } else {
+      notify({ message: 'Failed to fetch parcels. ' + parcels.message, severity: 'error', duration: 6 });
+    }
+  }, [user._id, notify]);
+
+  useEffect(() => {
+    fetchAgentParcels();
+  }, [fetchAgentParcels]);
 
   useEffect(() => {
     setStats({
@@ -56,7 +81,7 @@ export default function AgentDashboard({ agentCode = 'AG003' }) {
   const handleOpenDialog = (parcel) => {
     setSelectedParcel(parcel);
     setNewStatus(parcel.status);
-    setNotes('');
+    setNote(''); // Reset notes when opening dialog
     setDialogOpen(true);
   };
 
@@ -64,29 +89,31 @@ export default function AgentDashboard({ agentCode = 'AG003' }) {
     setDialogOpen(false);
     setSelectedParcel(null);
     setNewStatus('');
-    setNotes('');
+    setNote(''); // Reset notes when closing dialog
   };
 
-  const handleStatusUpdate = () => {
+  const handleStatusUpdate = async () => {
     if (selectedParcel && newStatus) {
+      const result = await service_updateParcel(selectedParcel.trackingNumber, {
+        status: newStatus,
+        note: note.trim() // Include notes in the update
+      });
+      if (!result) {
+        notify({ message: 'Failed to update parcel status', severity: 'error', duration: 6 });
+        return;
+      }
+      notify({ message: 'Parcel status updated successfully', severity: 'success', duration: 6 });
+      fetchAgentParcels();
       setAgentParcels((prevParcels) =>
-        prevParcels.map((parcel) => (parcel.id === selectedParcel.id ? { ...parcel, status: newStatus } : parcel))
+        prevParcels.map((parcel) => (parcel._id === selectedParcel._id ? { ...parcel, status: newStatus } : parcel))
       );
       handleCloseDialog();
     }
   };
 
-  const getStatusMenuItems = (currentStatus) => {
-    const statusFlow = {
-      pending: ['picked-up', 'cancelled'],
-      'picked-up': ['in-transit', 'failed'],
-      'in-transit': ['delivered', 'failed'],
-      delivered: [],
-      failed: ['picked-up', 'cancelled'],
-      cancelled: []
-    };
-
-    return statusFlow[currentStatus] || [];
+  const handleViewParcel = (parcel) => {
+    setSelectedMenuParcel(parcel);
+    setDetailsOpen(true);
   };
 
   const columns = useMemo(
@@ -165,26 +192,16 @@ export default function AgentDashboard({ agentCode = 'AG003' }) {
         size: 80,
         enableSorting: false,
         Cell: ({ row }) => (
-          <Tooltip title="Update Status">
-            <IconButton
-              size="small"
-              onClick={() => handleOpenDialog(row.original)}
-              disabled={row.original.status === 'delivered' || row.original.status === 'cancelled'}
-            >
-              <EditIcon />
+          <Box>
+            <IconButton size="small" onClick={(e) => handleMenuOpen(e, row.original)} disabled={row.original.status === 'cancelled'}>
+              <MoreVertIcon />
             </IconButton>
-          </Tooltip>
+          </Box>
         )
       }
     ],
     []
   );
-
-  useEffect(() => {
-    renders.current += 1;
-  });
-
-  console.log(renders.current);
 
   const table = useMaterialReactTable({
     columns,
@@ -202,10 +219,70 @@ export default function AgentDashboard({ agentCode = 'AG003' }) {
     paginationDisplayMode: 'pages',
     positionToolbarAlertBanner: 'bottom',
     positionActionsColumn: 'last',
+    renderRowActionMenuItems: ({ table, row, closeMenu }) => [
+      <MRT_ActionMenuItem
+        table={table}
+        icon={<VisibilityIcon />}
+        key="view"
+        label="View Details"
+        onClick={() => {
+          handleViewParcel(row.original);
+          closeMenu();
+        }}
+      />,
+      <MRT_ActionMenuItem
+        table={table}
+        icon={<EditIcon />}
+        key="edit"
+        label="Edit Status"
+        onClick={() => {
+          handleEditParcel(row.original);
+          closeMenu();
+        }}
+      />
+    ]
   });
 
+  const handleMenuOpen = (event, parcel) => {
+    setAnchorEl(event.currentTarget);
+    setSelectedMenuParcel(parcel);
+  };
+
+  const handleMenuClose = () => {
+    setAnchorEl(null);
+    // setSelectedMenuParcel(null);
+  };
+
+  const handleViewDetails = () => {
+    setDetailsOpen(true);
+    handleMenuClose();
+  };
+
+  const handleStatusClick = () => {
+    handleOpenDialog(selectedMenuParcel);
+    handleMenuClose();
+  };
+
+  console.log(selectedMenuParcel);
+
+  if (!user || user.role !== 'agent') {
+    return (
+      <Box p={3}>
+        <Typography variant="h4" fontWeight="bold" gutterBottom>
+          Access Denied
+        </Typography>
+        <Typography variant="body1">You do not have permission to view this page. Please contact your administrator.</Typography>
+      </Box>
+    );
+  }
   return (
     <Box p={3}>
+      <BookingDetailDialog
+        detailsOpen={detailsOpen}
+        setDetailsOpen={setDetailsOpen}
+        selectedBooking={selectedMenuParcel}
+      />
+
       <Typography variant="h4" fontWeight="bold" gutterBottom>
         Agent Dashboard
       </Typography>
@@ -288,26 +365,7 @@ export default function AgentDashboard({ agentCode = 'AG003' }) {
           <Typography variant="h6" mb={2}>
             My Assigned Parcels
           </Typography>
-          <MaterialReactTable
-            table={table}
-            // columns={columns}
-            // data={agentParcels}
-            // enableSorting={true}
-            // enablePagination={true}
-            // enableDensityToggle={true}
-            // initialState={{
-            //   pagination: {
-            //     pageSize: 10
-            //   },
-            //   sorting: [
-            //     {
-            //       id: 'dates.estimated',
-            //       desc: false
-            //     }
-            //   ]
-            // }}
-            // enableColumnFilters={true}
-          />
+          <MaterialReactTable table={table} />
         </CardContent>
       </Card>
 
@@ -328,6 +386,15 @@ export default function AgentDashboard({ agentCode = 'AG003' }) {
 
               <Box>
                 <Typography variant="subtitle2" color="text.secondary">
+                  Recipient
+                </Typography>
+                <Typography variant="body2">
+                  {selectedParcel.recipient.name} - {selectedParcel.recipient.address}
+                </Typography>
+              </Box>
+
+              <Box>
+                <Typography variant="subtitle2" color="text.secondary">
                   Current Status
                 </Typography>
                 <Chip
@@ -342,7 +409,7 @@ export default function AgentDashboard({ agentCode = 'AG003' }) {
               <FormControl fullWidth>
                 <InputLabel>New Status</InputLabel>
                 <Select value={newStatus} label="New Status" onChange={(e) => setNewStatus(e.target.value)}>
-                  {getStatusMenuItems(selectedParcel.status).map((status) => (
+                  {Object.keys(statusConfig).map((status) => (
                     <MenuItem key={status} value={status}>
                       <Stack direction="row" spacing={1} alignItems="center">
                         {statusConfig[status].icon}
@@ -352,14 +419,16 @@ export default function AgentDashboard({ agentCode = 'AG003' }) {
                   ))}
                 </Select>
               </FormControl>
-              <Box>
-                <Typography variant="subtitle2" color="text.secondary">
-                  Recipient
-                </Typography>
-                <Typography variant="body2">
-                  {selectedParcel.recipient.name} - {selectedParcel.recipient.company}
-                </Typography>
-              </Box>
+
+              <TextField
+                fullWidth
+                label="Status Notes"
+                multiline
+                rows={3}
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                placeholder="Add any additional notes."
+              />
             </Stack>
           )}
         </DialogContent>
@@ -370,6 +439,37 @@ export default function AgentDashboard({ agentCode = 'AG003' }) {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* === Action Menu === */}
+      <Menu
+        anchorEl={anchorEl}
+        open={Boolean(anchorEl)}
+        onClose={handleMenuClose}
+        anchorOrigin={{
+          vertical: 'bottom',
+          horizontal: 'right'
+        }}
+        transformOrigin={{
+          vertical: 'top',
+          horizontal: 'right'
+        }}
+      >
+        <MenuItem onClick={handleViewDetails}>
+          <ListItemIcon>
+            <VisibilityIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText>View Details</ListItemText>
+        </MenuItem>
+        <MenuItem
+          onClick={handleStatusClick}
+          disabled={selectedMenuParcel?.status === 'delivered' || selectedMenuParcel?.status === 'cancelled'}
+        >
+          <ListItemIcon>
+            <EditIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText>Update Status</ListItemText>
+        </MenuItem>
+      </Menu>
     </Box>
   );
 }

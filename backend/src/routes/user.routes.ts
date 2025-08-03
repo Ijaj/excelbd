@@ -1,24 +1,20 @@
 import express from "express";
-import { upsertTask, getTasks } from "../controllers/user.controller";
 import { authMiddleware } from "../middlewares/auth.middleware";
-import { errorHandler } from "../middlewares/error.middleware";
+import { allowOnly } from "../middlewares/role.middleware";
+import {
+  getAllAgents,
+  getAllAvailableAgents,
+  getAllUsers,
+} from "../controllers/user.controller";
 
 const router = express.Router();
 
+router.get("/", [authMiddleware, allowOnly("admin")], getAllUsers);
+router.get("/agents", [authMiddleware, allowOnly("admin")], getAllAgents);
 router.get(
-  "/tasks",
-  [
-    // header("authorization")
-    //   .exists()
-    //   .withMessage("Authorization header is missing")
-    //   .matches(/^Bearer\s[\w-]+\.[\w-]+\.[\w-]+$/)
-    //   .withMessage("Invalid Authorization header format"),
-    // validateMiddleware,
-    authMiddleware
-  ],
-  getTasks
+  "/agents/available",
+  [authMiddleware, allowOnly("admin")],
+  getAllAvailableAgents
 );
-
-router.put("/task", upsertTask);
 
 export default router;

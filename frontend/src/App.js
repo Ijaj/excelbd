@@ -1,19 +1,17 @@
 import { ThemeProvider } from '@mui/material/styles';
 import { CssBaseline, StyledEngineProvider } from '@mui/material';
 
-// routing
 import Routes from 'routes';
 
-// defaultTheme
-import theme from 'theme';
-
-// import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { getTheme } from 'theme';
 
 import { ConfirmProvider } from 'hooks/Confirm ';
 import { AlertProvider } from 'hooks/Alart';
 import { AuthProvider } from 'hooks/AuthProvider';
 
-// ==============================|| APP ||============================== //
+const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+const style = 'elegant';
+const theme = getTheme(style, prefersDark);
 
 const App = () => {
   return (

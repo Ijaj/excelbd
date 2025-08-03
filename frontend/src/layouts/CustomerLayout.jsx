@@ -55,7 +55,7 @@ const Layout = () => {
 
   function handleLogout() {
     logout();
-    navigate('/', { replace: true });
+    window.location.href = '/';
   }
 
   return (

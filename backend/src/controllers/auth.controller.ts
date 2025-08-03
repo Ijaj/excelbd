@@ -1,9 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import { register, login, deleteUser } from "../services/auth.service";
-import {
-  getTokenFromRequest,
-  getUserFromToken,
-} from "../utils/helpers";
+import { getTokenFromRequest, getUserFromToken } from "../utils/helpers";
+import { ApiError } from "../utils/ApiError";
 
 export const registerUser = async (
   req: Request,
@@ -11,10 +9,22 @@ export const registerUser = async (
   next: NextFunction
 ) => {
   try {
-    const token = await register(req.body);
-    res.status(201).json({ token });
+    const { firstName, lastName, ...rest } = req.body;
+    const fullName = `${firstName} ${lastName}`.trim();
+    const userData = { ...rest, name: fullName };
+    if (userData.password !== userData.confirmPassword) {
+      res.status(400).json({ message: "Passwords do not match" });
+      return;
+    }
+    delete userData.confirmPassword;
+    const token = await register(userData);
+    res.status(201).send();
   } catch (err) {
-    next(err);
+    next(
+      new ApiError(400, "Registration failed", [
+        { field: "email", message: "Email already exists" },
+      ])
+    );
   }
 };
 
@@ -24,8 +34,8 @@ export const loginUser = async (
   next: NextFunction
 ) => {
   try {
-    const token = await login(req.body);
-    res.status(200).json({ token });
+    const [token, user] = await login(req.body);
+    res.status(200).json({ user, token });
   } catch (err) {
     next(err);
   }
@@ -50,10 +60,15 @@ export const verifyUser = async (
 };
 
 export async function _delete(req: Request, res: Response, next: NextFunction) {
-  const deleted = await deleteUser(req.user!._id);
-  if (deleted === 1) {
-    res.status(204).send();
-  } else {
-    res.status(204).json({ message: "The requested user was not found" });
+  try {
+    const deleted = await deleteUser(req.user!._id);
+    if (deleted === 1) {
+      res.status(204).send();
+    } else {
+      // res.status(404).json({ message: "The requested user was not found" });
+      next(new ApiError(404, "User not found"));
+    }
+  } catch (error) {
+    next(error);
   }
 }

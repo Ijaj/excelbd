@@ -23,7 +23,7 @@ export default function SideMenu() {
   }
 
   const DrawerList = (
-    <Box sx={{ width: drawerWidth }} role="presentation">
+    <Box sx={{ width: drawerWidth - 10 }} role="presentation">
       <List sx={{ transition: 'all 0.2s' }}>
         {menuItems.map((item) => (
           <ListItem key={item.label}>

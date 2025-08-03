@@ -17,13 +17,16 @@ import {
   Stack,
   Avatar
 } from '@mui/material';
-import { LocalShipping, Visibility, VisibilityOff, Google, GitHub, Email, Lock } from '@mui/icons-material';
+import { LocalShipping, Visibility, VisibilityOff, Email, Lock } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 
 import { useAuth } from 'hooks/AuthProvider';
+import { service_login } from 'services/auth-services';
+import { useAlert } from 'hooks/Alart';
 
 // Sign In Page Component
 export default function SignInPage() {
+  const notify = useAlert();
   const theme = useTheme();
   const navigate = useNavigate();
   const { login } = useAuth();
@@ -67,21 +70,17 @@ export default function SignInPage() {
     return newErrors;
   };
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
     // Add your sign-in logic here
-    console.log('Sign in data:', formData);
     const validationErrors = validateForm();
     if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors);
       return;
     }
-    login({ ...formData, name: 'Ijaj Ahmed', role: 'agent' });
-    navigate('/', { replace: true });
-  };
 
-  const handleSocialLogin = (provider) => {
-    console.log(`Sign in with ${provider}`);
+    const result = await service_login(formData.email, formData.password, login);
+    notify(result);
   };
 
   return (
@@ -124,44 +123,6 @@ export default function SignInPage() {
               Sign in to your CourierPro account
             </Typography>
           </Box>
-
-          {/* Social Login Buttons */}
-          <Stack spacing={2} sx={{ mb: 3 }}>
-            <Button
-              fullWidth
-              variant="outlined"
-              startIcon={<Google />}
-              onClick={() => handleSocialLogin('Google')}
-              sx={{
-                py: 1.5,
-                borderColor: theme.palette.divider,
-                color: theme.palette.text.primary,
-                '&:hover': {
-                  borderColor: theme.palette.primary.main,
-                  backgroundColor: theme.palette.primary.main + '08'
-                }
-              }}
-            >
-              Continue with Google
-            </Button>
-            <Button
-              fullWidth
-              variant="outlined"
-              startIcon={<GitHub />}
-              onClick={() => handleSocialLogin('GitHub')}
-              sx={{
-                py: 1.5,
-                borderColor: theme.palette.divider,
-                color: theme.palette.text.primary,
-                '&:hover': {
-                  borderColor: theme.palette.grey[800],
-                  backgroundColor: theme.palette.grey[800] + '08'
-                }
-              }}
-            >
-              Continue with GitHub
-            </Button>
-          </Stack>
 
           <Divider sx={{ my: 3 }}>
             <Typography variant="body2" color="text.secondary">
@@ -256,11 +217,8 @@ export default function SignInPage() {
                   fontSize: '1.1rem',
                   fontWeight: 600,
                   textTransform: 'none',
-                  background: `linear-gradient(135deg, ${theme.palette.primary.main}, ${theme.palette.primary.dark})`,
-                  boxShadow: `0 8px 24px ${theme.palette.primary.main}40`,
                   '&:hover': {
-                    transform: 'translateY(-2px)',
-                    boxShadow: `0 12px 32px ${theme.palette.primary.main}50`
+                    transform: 'translateY(-2px)'
                   },
                   transition: 'all 0.3s ease-in-out'
                 }}
