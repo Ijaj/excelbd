@@ -155,14 +155,11 @@ export const updateParcel = async (req: Request, res: Response) => {
     ]);
   }
 
-  /** 🔹 1. Set lastUpdatedBy and lastStatusNote if user exists */
   const update: any = {
     lastUpdatedBy: user ? (user._id as string).toString() : "guest",
   };
   if (note) update.lastStatusNote = note;
 
-  /** 🔹 2. Agent can be assigned while status is 'pending'.
-   * Status cannot change to anything except 'cancelled' without an agent */
   if (
     status &&
     status !== "pending" &&
@@ -176,7 +173,6 @@ export const updateParcel = async (req: Request, res: Response) => {
     );
   }
 
-  /** 🔹 3. Prevent un-assigning agent if status = 'in-transit' */
   if (
     parcel.assignedAgent &&
     !assignedAgent &&
@@ -188,7 +184,6 @@ export const updateParcel = async (req: Request, res: Response) => {
     );
   }
 
-  /** 🔹 4. Validate assignedAgent role and max capacity */
   let newAgent: UserDocument | null | undefined = null;
   if (assignedAgent) {
     if (user.role !== "admin") {
@@ -213,17 +208,14 @@ export const updateParcel = async (req: Request, res: Response) => {
     update.assignedAgent = assignedAgent;
   }
 
-  /** 🔹 5. Handle status updates */
   if (status) {
     update.status = status;
 
-    // If picked-up, set pickup date and estimated date if not provided
     if (status === "picked-up") {
       update["dates.pickup"] = new Date();
       update["dates.estimated"] = estimated ?? defaultEstimatedDate();
     }
 
-    // If failed or delivered, decrement agent's currentParcels
     if (
       (status === "failed" ||
         status === "delivered" ||
@@ -238,15 +230,12 @@ export const updateParcel = async (req: Request, res: Response) => {
     }
   }
 
-  /** 🔹 6. Update priority if provided */
   if (priority) update.priority = priority;
 
-  /** 🔹 7. Update estimated date manually if provided */
   if (estimated && status !== "picked-up") {
     update["dates.estimated"] = estimated;
   }
 
-  /** 🔹 Perform the update */
   try {
     const updatedParcel = await updateParcelByTrackingNumber(
       trackingNumber,
@@ -257,17 +246,14 @@ export const updateParcel = async (req: Request, res: Response) => {
       return res.status(404).json({ error: "Parcel not found" });
     }
 
-    // Send email notification when status changes
     if (status) {
       try {
         await sendParcelNotification(updatedParcel);
       } catch (emailError) {
         console.error("Failed to send email notification:", emailError);
-        // Don't throw error, continue with the response
       }
     }
 
-    /** 🔹 8. If agent is newly assigned and status = picked-up, add parcel to agent's array */
     if (newAgent && status === "picked-up") {
       if (
         !newAgent.parcels.includes((updatedParcel._id as string).toString())
