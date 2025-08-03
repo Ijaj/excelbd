@@ -27,10 +27,32 @@ import {
   TrendingUp,
   SupportAgent
 } from '@mui/icons-material';
+import { service_parcelByTrackingNumber } from 'services/parcel-services';
+import BookingDetailDialog from 'components/booking-dialog';
+import { useAlert } from 'hooks/Alart';
+import { useState } from 'react';
 
 const CustomerLandingPage = () => {
+  const notify = useAlert();
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [trackingId, setTrackingId] = useState('');
+  const [parcel, setParcel] = useState(null);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+
+  const handleTrackParcel = async () => {
+    if (trackingId) {
+      const result = await service_parcelByTrackingNumber(trackingId);
+      if (result) {
+        setParcel(result);
+        setDetailsOpen(true); // Open the dialog with the fetched details
+      } else {
+        notify({ msg: 'Parcel not found', type: 'error' });
+      }
+    } else {
+      alert('Please enter a valid tracking ID');
+    }
+  };
 
   const features = [
     {
@@ -83,11 +105,10 @@ const CustomerLandingPage = () => {
         backgroundColor: theme.palette.background.default
       }}
     >
-      {/* Hero Section */}
+      <BookingDetailDialog detailsOpen={detailsOpen} selectedBooking={parcel} setDetailsOpen={setDetailsOpen} />
       <Box
         sx={{
           minHeight: '100vh',
-          // background: `linear-gradient(135deg, ${theme.palette.grey[50]} 0%, ${theme.palette.grey[100]} 100%)`,
           position: 'relative',
           overflow: 'hidden',
           display: 'flex',
@@ -169,6 +190,7 @@ const CustomerLandingPage = () => {
                       },
                       transition: 'all 0.3s ease-in-out'
                     }}
+                    onChange={(e) => setTrackingId(e.target.value)}
                   />
                   <Button
                     variant="contained"
@@ -188,6 +210,7 @@ const CustomerLandingPage = () => {
                       },
                       transition: 'all 0.3s ease-in-out'
                     }}
+                    onClick={handleTrackParcel}
                   >
                     Track Your Parcel
                   </Button>
